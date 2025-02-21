@@ -5,7 +5,9 @@ using Android.OS;
 #endif
 
 namespace AlarmApp;
-
+/*
+ * STOPACTION - is trying to stop the alarm sound and notification implementation
+ */
 public partial class MainPage : ContentPage
 {
 #if ANDROID
@@ -15,6 +17,18 @@ public partial class MainPage : ContentPage
     public MainPage()
     {
         InitializeComponent();
+
+        //STOPACTION - adding subscription to the AlarmReceiver to be able to enable the Stop button
+#if ANDROID
+        MessagingCenter.Subscribe<AlarmReceiver>(this, "AlarmStarted", (_) =>
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                StopButton.IsEnabled = true;
+                StatusLabel.Text = "OK: alarm is enabled!";
+            });
+        });
+#endif
     }
 
     private void SetAlarm_Clicked(object sender, EventArgs e)
@@ -51,6 +65,21 @@ public partial class MainPage : ContentPage
         {
             StatusLabel.Text = "ER: There is no alarm set to cancel";
         }
+#endif
+    }
+
+    /// <summary>
+    /// STOPACTION - handle the Stop button click event and stop the alarm sound in the AlarmReceiver on Android
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private void StopAlarm_Clicked(object sender, EventArgs e)
+    {
+#if ANDROID
+        AlarmReceiver.StopAlarm();
+        StopButton.IsEnabled = false;
+        StatusLabel.Text = "OK: alarm stopped";
+        _pendingIntent = null; // We're resetting it because the alarm has already gone off.
 #endif
     }
 
