@@ -8,6 +8,10 @@ namespace AlarmApp;
 
 public partial class MainPage : ContentPage
 {
+#if ANDROID
+    private PendingIntent _pendingIntent; // Save Android PendingIntent to cancel alarm if required
+#endif
+
     public MainPage()
     {
         InitializeComponent();
@@ -33,6 +37,21 @@ public partial class MainPage : ContentPage
         {
             RequestExactAlarmPermission();
         }
+    }
+
+    private void CancelAlarm_Clicked(object sender, EventArgs e)
+    {
+#if ANDROID
+        if (_pendingIntent != null)
+        {
+            CancelAlarm();
+            StatusLabel.Text = "OK: planned Alarm Clock cancelled";
+        }
+        else
+        {
+            StatusLabel.Text = "ER: There is no alarm set to cancel";
+        }
+#endif
     }
 
     private bool CanScheduleExactAlarms()
@@ -66,10 +85,20 @@ public partial class MainPage : ContentPage
         var context = Platform.CurrentActivity;
         var alarmManager = (Android.App.AlarmManager)context.GetSystemService(Android.Content.Context.AlarmService);
         var intent = new Android.Content.Intent(context, typeof(AlarmReceiver));
-        var pendingIntent = Android.App.PendingIntent.GetBroadcast(context, 0, intent, Android.App.PendingIntentFlags.UpdateCurrent | Android.App.PendingIntentFlags.Immutable);
+        _pendingIntent = Android.App.PendingIntent.GetBroadcast(context, 0, intent, Android.App.PendingIntentFlags.UpdateCurrent | Android.App.PendingIntentFlags.Immutable);
 
         var triggerTime = Java.Lang.JavaSystem.CurrentTimeMillis() + (long)(alarmTime - DateTime.Now).TotalMilliseconds;
-        alarmManager.SetExact(Android.App.AlarmType.RtcWakeup, triggerTime, pendingIntent);
+        alarmManager.SetExact(Android.App.AlarmType.RtcWakeup, triggerTime, _pendingIntent);
+#endif
+    }
+
+    private void CancelAlarm()
+    {
+#if ANDROID
+        var context = Platform.CurrentActivity;
+        var alarmManager = (Android.App.AlarmManager)context.GetSystemService(Android.Content.Context.AlarmService);
+        alarmManager.Cancel(_pendingIntent);
+        _pendingIntent = null; // Reset after cancellation
 #endif
     }
 }

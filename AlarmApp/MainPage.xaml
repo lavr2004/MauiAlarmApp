@@ -4,6 +4,7 @@
     <StackLayout Padding="20">
         <TimePicker x:Name="AlarmTimePicker" Format="HH:mm" />
         <Button Text="Set the Alarm" Clicked="SetAlarm_Clicked" />
+        <Button Text="Cancel Planned Alarm" Clicked="CancelAlarm_Clicked" Margin="0, 5, 0, 0"/>
         <Label x:Name="StatusLabel" Text="The Alarm Clock is not set" />
     </StackLayout>
 </ContentPage>
