@@ -39,17 +39,45 @@ public partial class MainPage : ContentPage
 
         if (alarmDateTime < DateTime.Now)
         {
-            alarmDateTime = alarmDateTime.AddDays(1); // If the time has already passed, we set it for tomorrow
+            alarmDateTime = alarmDateTime.AddDays(1); // Если время уже прошло, устанавливаем на завтра
         }
 
-        if (CanScheduleExactAlarms())
-        {
-            SetAlarm(alarmDateTime);
-            StatusLabel.Text = $"OK: alarm setting up on {alarmDateTime:HH:mm}";
-        }
-        else
+        if (!CanScheduleExactAlarms())
         {
             RequestExactAlarmPermission();
+            return; // Прерываем выполнение, пока пользователь не даст разрешение
+        }
+
+        // Проверка и запрос отключения оптимизации батареи
+#if ANDROID
+        if (OperatingSystem.IsAndroidVersionAtLeast(23))
+        {
+            var powerManager = (Android.OS.PowerManager)Platform.CurrentActivity.GetSystemService(Context.PowerService);
+            if (!powerManager.IsIgnoringBatteryOptimizations(Platform.CurrentActivity.PackageName))
+            {
+                var intent = new Intent(Android.Provider.Settings.ActionRequestIgnoreBatteryOptimizations);
+                intent.SetData(Android.Net.Uri.Parse("package:" + Platform.CurrentActivity.PackageName));
+                Platform.CurrentActivity.StartActivity(intent);
+                StatusLabel.Text = "Пожалуйста, отключите оптимизацию батареи для корректной работы будильника.";
+                return; // Даём пользователю время на подтверждение
+            }
+        }
+#endif
+
+        // Установка будильника, если все разрешения есть
+        SetAlarm(alarmDateTime);
+        StatusLabel.Text = $"OK: alarm setting up on {alarmDateTime:HH:mm}";
+    }
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        if (CanScheduleExactAlarms())
+        {
+            // Если разрешения есть, можно попробовать восстановить установку
+            if (StatusLabel.Text.Contains("оптимизацию батареи"))
+            {
+                SetAlarm_Clicked(null, null); // Повторный вызов с последним временем
+            }
         }
     }
 
